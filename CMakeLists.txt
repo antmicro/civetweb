@@ -48,6 +48,7 @@ endif()
 
 # CTest automation
 option(CIVETWEB_BUILD_TESTING "Enable automated testing of civetweb" ON)
+set(CIVETWEB_BUILD_TESTING OFF)
 message(STATUS "Enabling tests in the build - ${CIVETWEB_BUILD_TESTING}")
 
 # C++ wrappers
@@ -211,7 +212,8 @@ message(STATUS "Duktape CGI support - ${CIVETWEB_ENABLE_DUKTAPE}")
 
 # SSL support
 option(CIVETWEB_ENABLE_SSL "Enables the secure socket layer" ON)
-message(STATUS "SSL support - ${CIVETWEB_ENABLE_SSL}")
+set(CIVETWEB_ENABLE_SSL OFF)
+message(STATUS "SSL support!!!! - ${CIVETWEB_ENABLE_SSL}")
 
 # OpenSSL 1.1 API
 option(CIVETWEB_SSL_OPENSSL_API_1_1 "Use the OpenSSL 1.1 API" OFF)

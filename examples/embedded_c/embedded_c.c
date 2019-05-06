@@ -11,6 +11,15 @@
 /* Simple example program on how to use CivetWeb embedded into a C program. */
 #ifdef _WIN32
 #include <windows.h>
+#elif defined(__ZEPHYR__)
+#include <time.h>
+#include <zephyr.h>
+
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
+
+#define time_t uint64_t
+
 #else
 #include <unistd.h>
 #endif
@@ -76,6 +85,7 @@ ExampleHandler(struct mg_connection *conn, void *cbdata)
 	mg_printf(conn,
 	          "<p>To see a page from the *.foo handler <a "
 	          "href=\"xy.foo\">click xy.foo</a></p>");
+# if 0
 	mg_printf(conn,
 	          "<p>To see a page from the close handler <a "
 	          "href=\"close\">click close</a></p>");
@@ -105,6 +115,7 @@ ExampleHandler(struct mg_connection *conn, void *cbdata)
 	          "auth</a></p>");
 
 	mg_printf(conn, "<p>To exit <a href=\"%s\">click exit</a></p>", EXIT_URI);
+#endif
 	mg_printf(conn, "</body></html>\n");
 	return 1;
 }
@@ -483,6 +494,7 @@ CheckSumHandler(struct mg_connection *conn, void *cbdata)
 }
 
 
+# if 0
 int
 CookieHandler(struct mg_connection *conn, void *cbdata)
 {
@@ -526,6 +538,7 @@ CookieHandler(struct mg_connection *conn, void *cbdata)
 	mg_printf(conn, "</body></html>\n");
 	return 1;
 }
+#endif
 
 
 int
@@ -1045,6 +1058,7 @@ main(int argc, char *argv[])
 	/* Add handler for all files with .foo extension */
 	mg_set_request_handler(ctx, "**.foo$", FooHandler, 0);
 
+# if 0
 	/* Add handler for /close extension */
 	mg_set_request_handler(ctx, "/close", CloseHandler, 0);
 
@@ -1081,6 +1095,7 @@ main(int argc, char *argv[])
 
 	/* Add HTTP site with auth */
 	mg_set_request_handler(ctx, "/auth", AuthStartHandler, 0);
+# endif
 
 
 #ifdef USE_WEBSOCKET
@@ -1094,9 +1109,16 @@ main(int argc, char *argv[])
 	                         0);
 #endif
 
+	return 0;
+
 	/* List all listening ports */
 	memset(ports, 0, sizeof(ports));
-	port_cnt = mg_get_server_ports(ctx, 32, ports);
+	port_cnt = 0;
+	while (port_cnt <= 0) {
+		printf("Waiting for ports...\n");
+		port_cnt = mg_get_server_ports(ctx, 32, ports);
+		sleep(1);
+	}
 	printf("\n%i listening ports:\n\n", port_cnt);
 
 	for (n = 0; n < port_cnt && n < 32; n++) {
