@@ -44,6 +44,9 @@ if (${KERNEL_NAME} MATCHES "zephyr")
   set(CIVETWEB_ENABLE_ASAN OFF)
   set(CIVETWEB_INSTALL_EXECUTABLE OFF)
 
+  # XXX This should be solved in a better way
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNO_FILESYSTEMS -DMG_EXTERNAL_FUNCTION_mg_cry_internal_impl -DMG_EXTERNAL_FUNCTION_log_access")
+
   set(BUILD_SHARED_LIBS OFF)
 else()
   # Detect the platform reliably

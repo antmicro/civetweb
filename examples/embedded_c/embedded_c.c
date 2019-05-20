@@ -11,6 +11,15 @@
 /* Simple example program on how to use CivetWeb embedded into a C program. */
 #ifdef _WIN32
 #include <windows.h>
+#elif defined(__ZEPHYR__)
+#include <time.h>
+#include <zephyr.h>
+
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
+
+#define time_t uint64_t
+
 #else
 #include <unistd.h>
 #endif
@@ -41,6 +50,29 @@
 
 #endif
 
+
+#if defined(__ZEPHYR__)
+struct tm {
+	int tm_sec;
+	int tm_min;
+	int tm_hour;
+	int tm_mday;
+	int tm_mon;
+	int tm_year;
+	int tm_wday;
+	int tm_yday;
+	int tm_isdst;
+};
+
+static struct tm tm_how_to_handle_this_properly;
+
+struct tm *localtime(time_t *timer)
+{
+	/* XXX */
+	return &tm_how_to_handle_this_properly;
+}
+
+#endif
 
 #define EXAMPLE_URI "/example"
 #define EXIT_URI "/exit"
@@ -1104,9 +1136,16 @@ main(int argc, char *argv[])
 	                         0);
 #endif
 
+	return 0;
+
 	/* List all listening ports */
 	memset(ports, 0, sizeof(ports));
-	port_cnt = mg_get_server_ports(ctx, 32, ports);
+	port_cnt = 0;
+	while (port_cnt <= 0) {
+		printf("Waiting for ports...\n");
+		port_cnt = mg_get_server_ports(ctx, 32, ports);
+		sleep(1);
+	}
 	printf("\n%i listening ports:\n\n", port_cnt);
 
 	for (n = 0; n < port_cnt && n < 32; n++) {

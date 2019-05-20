@@ -162,6 +162,82 @@ mg_static_assert(sizeof(void *) >= sizeof(int), "data type size check");
 #define PATH_MAX FILENAME_MAX
 #endif /* __SYMBIAN32__ */
 
+#if defined(__ZEPHYR__)
+
+#ifdef ALTERNATIVE_QUEUE
+#undef ALTERNATIVE_QUEUE
+#define NO_ALTERNATIVE_QUEUE 1
+#endif
+
+#include <time.h>
+
+#include <zephyr.h>
+#include <posix/time.h>
+#include <net/socket.h>
+#include <posix/pthread.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+#include <fcntl.h>
+#define F_SETFD 2
+#define FD_CLOEXEC 1
+
+#define time_t uint64_t
+#define FILE void
+
+static struct tm *
+gmtime(const time_t *ptime)
+{
+	/* XXX */
+	return NULL;
+}
+
+static size_t
+strftime(char *dst, size_t dst_size, const char *fmt, const struct tm *tm)
+{
+	/* XXX */
+	return 0;
+}
+
+double difftime (time_t end, time_t beg)
+{
+	return end - beg;
+}
+
+static char* generic_strerr = "XXX: generic error string";
+
+static char *strerror(int err)
+{
+	return generic_strerr;
+}
+
+int sscanf ( const char * s, const char * format, ...)
+{
+	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
+	return 0;
+}
+
+double atof (const char* str)
+{
+	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
+	return 0;
+}
+
+long long int strtoll (const char* str, char** endptr, int base)
+{
+	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
+	return 0;
+}
+
+time_t time(time_t *t)
+{
+	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
+	return 0;
+}
+
+#endif
 
 #if !defined(CIVETWEB_HEADER_INCLUDED)
 /* Include the header file here, so the CivetWeb interface is defined for the
@@ -182,9 +258,7 @@ static void DEBUG_TRACE_FUNC(const char *func,
 #define NEED_DEBUG_TRACE_FUNC
 
 #else
-#define DEBUG_TRACE(fmt, ...)                                                  \
-	do {                                                                       \
-	} while (0)
+#define DEBUG_TRACE(fmt, ...)  printf("[DEBUG_TRACE] " fmt " [caller: %s @ %d]\n", __VA_ARGS__, __func__, __LINE__)
 #endif /* DEBUG */
 #endif /* DEBUG_TRACE */
 
@@ -260,7 +334,7 @@ __cyg_profile_func_exit(void *this_fn, void *call_site)
 
 
 /* Some ANSI #includes are not available on Windows CE */
-#if !defined(_WIN32_WCE)
+#if !defined(_WIN32_WCE) && !defined(__ZEPHYR__)
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -375,6 +449,7 @@ _civet_safe_clock_gettime(int clk_id, struct timespec *t)
 #endif
 
 
+#if !defined(__ZEPHYR__)
 #include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -384,6 +459,7 @@ _civet_safe_clock_gettime(int clk_id, struct timespec *t)
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#endif
 
 /********************************************************************/
 /* CivetWeb configuration defines */
@@ -765,33 +841,44 @@ struct mg_pollfd {
 
 #else /* defined(_WIN32) - WINDOWS vs UNIX include block */
 
-#include <arpa/inet.h>
 #include <inttypes.h>
+
+#if !defined(__ZEPHYR__)
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <stdint.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
+#endif
+
+#include <stdint.h>
+
 typedef const void *SOCK_OPT_TYPE;
 
 #if defined(ANDROID)
 typedef unsigned short int in_port_t;
 #endif
 
+#if !defined(__ZEPHYR__)
 #include <dirent.h>
 #include <grp.h>
 #include <pwd.h>
 #include <unistd.h>
+#endif
 #define vsnprintf_impl vsnprintf
 
 #if !defined(NO_SSL_DL) && !defined(NO_SSL)
 #include <dlfcn.h>
 #endif
+
+#if !defined(__ZEPHYR__)
 #include <pthread.h>
+#endif
+
 #if defined(__MACH__)
 #define SSL_LIB "libssl.dylib"
 #define CRYPTO_LIB "libcrypto.dylib"
@@ -2422,10 +2509,18 @@ static const struct mg_option config_options[] = {
 
     /* Once for each server */
     {"listening_ports", MG_CONFIG_TYPE_STRING_LIST, "8080"},
+# if 0
     {"num_threads", MG_CONFIG_TYPE_NUMBER, "50"},
+# else
+    {"num_threads", MG_CONFIG_TYPE_NUMBER, "1"},
+# endif
     {"run_as_user", MG_CONFIG_TYPE_STRING, NULL},
     {"tcp_nodelay", MG_CONFIG_TYPE_NUMBER, "0"},
+# if 0
     {"max_request_size", MG_CONFIG_TYPE_NUMBER, "16384"},
+# else
+    {"max_request_size", MG_CONFIG_TYPE_NUMBER, "2048"},
+#endif
     {"linger_timeout_ms", MG_CONFIG_TYPE_NUMBER, NULL},
 #if defined(__linux__)
     {"allow_sendfile_call", MG_CONFIG_TYPE_BOOLEAN, "yes"},
@@ -3767,13 +3862,25 @@ mg_cry_internal_wrap(const struct mg_connection *conn,
 {
 	va_list ap;
 	va_start(ap, fmt);
+# if 1
+	printf("Serious internal error - hanging intentionally");
+	printf("-----------------\n");
+	printf(fmt, ap);
+	printf("\n-----------------\n");
+# else
 	if (!conn && ctx) {
 		struct mg_connection fc;
 		mg_cry_internal_impl(fake_connection(&fc, ctx), func, line, fmt, ap);
 	} else {
 		mg_cry_internal_impl(conn, func, line, fmt, ap);
 	}
+#endif
 	va_end(ap);
+
+	while (1)
+	{
+		sleep(1000);
+	}
 }
 
 
@@ -13337,8 +13444,7 @@ mg_set_handler_type(struct mg_context *phys_ctx,
 	}
 
 	tmp_rh =
-	    (struct mg_handler_info *)mg_calloc_ctx(sizeof(struct mg_handler_info),
-	                                            1,
+	    (struct mg_handler_info *)mg_calloc_ctx(1, sizeof(struct mg_handler_info),
 	                                            phys_ctx);
 	if (tmp_rh == NULL) {
 		mg_unlock_context(phys_ctx);
@@ -13856,6 +13962,7 @@ handle_request(struct mg_connection *conn)
 		 * addresses a file based resource (static content or Lua/cgi
 		 * scripts in the file system). */
 		is_callback_resource = 0;
+# if 0
 		interpret_uri(conn,
 		              path,
 		              sizeof(path),
@@ -13864,6 +13971,12 @@ handle_request(struct mg_connection *conn)
 		              &is_script_resource,
 		              &is_websocket_request,
 		              &is_put_or_delete_request);
+# else
+		is_found = 0;
+		is_script_resource = 0;
+		is_websocket_request = 0;
+		is_put_or_delete_request = 0;
+# endif
 	}
 
 	/* 6. authorization check */
@@ -13908,7 +14021,7 @@ handle_request(struct mg_connection *conn)
 			send_authorization_request(conn, NULL);
 			return;
 		}
-#endif
+
 
 	} else {
 		/* 6.3. This is either a OPTIONS, GET, HEAD or POST request,
@@ -13918,6 +14031,7 @@ handle_request(struct mg_connection *conn)
 			send_authorization_request(conn, NULL);
 			return;
 		}
+#endif
 	}
 
 	/* request is authorized or does not need authorization */
@@ -14265,6 +14379,9 @@ close_all_listening_sockets(struct mg_context *ctx)
 	ctx->listening_socket_fds = NULL;
 }
 
+#if defined (__ZEPHYR__)
+static int z_port_i = 0;
+#endif
 
 /* Valid listening port specification is: [ip_address:]port[s]
  * Examples for IPv4: 80, 443s, 127.0.0.1:3128, 192.0.2.3:8080s
@@ -14396,6 +14513,15 @@ parse_port_string(const struct vec *vec, struct socket *so, int *ip_version)
 
 
 	} else {
+#if defined(__ZEPHYR__)
+		/* XXX port hack */
+		if (z_port_i++ == 0)
+			so->lsa.sin.sin_port = htons(8080);
+		else
+			so->lsa.sin.sin_port = htons(8888);
+		*ip_version = 4;
+		return 1;
+#endif
 		/* Parsing failure. */
 	}
 
@@ -14677,6 +14803,7 @@ set_ports_option(struct mg_context *phys_ctx)
 			continue;
 		}
 
+# if !defined(__ZEPHYR__)
 		if ((getsockname(so.sock, &(usa.sa), &len) != 0)
 		    || (usa.sa.sa_family != so.lsa.sa.sa_family)) {
 
@@ -14691,6 +14818,7 @@ set_ports_option(struct mg_context *phys_ctx)
 			so.sock = INVALID_SOCKET;
 			continue;
 		}
+# endif
 
 /* Update lsa port in case of random free ports */
 #if defined(USE_IPV6)
@@ -14729,7 +14857,9 @@ set_ports_option(struct mg_context *phys_ctx)
 			continue;
 		}
 
+# if !defined(__ZEPHYR__)
 		set_close_on_exec(so.sock, NULL, phys_ctx);
+# endif
 		phys_ctx->listening_sockets = ptr;
 		phys_ctx->listening_sockets[phys_ctx->num_listening_sockets] = so;
 		phys_ctx->listening_socket_fds = pfd;
@@ -14898,7 +15028,7 @@ check_acl(struct mg_context *phys_ctx, uint32_t remote_ip)
 }
 
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__ZEPHYR__)
 static int
 set_uid_option(struct mg_context *phys_ctx)
 {
@@ -16142,6 +16272,7 @@ set_tcp_nodelay(SOCKET sock, int nodelay_on)
 }
 
 
+#if !defined(__ZEPHYR__)
 static void
 close_socket_gracefully(struct mg_connection *conn)
 {
@@ -16264,6 +16395,7 @@ close_socket_gracefully(struct mg_connection *conn)
 	closesocket(conn->client.sock);
 	conn->client.sock = INVALID_SOCKET;
 }
+#endif
 
 
 static void
@@ -16313,7 +16445,13 @@ close_connection(struct mg_connection *conn)
 	}
 #endif
 	if (conn->client.sock != INVALID_SOCKET) {
+#if defined(__ZEPHYR__)
+		shutdown(conn->client.sock, SHUTDOWN_WR);
+		closesocket(conn->client.sock);
+		conn->client.sock = INVALID_SOCKET;
+#else
 		close_socket_gracefully(conn);
+#endif
 		conn->client.sock = INVALID_SOCKET;
 	}
 
@@ -17970,12 +18108,14 @@ static unsigned __stdcall worker_thread(void *thread_func_param)
 static void *
 worker_thread(void *thread_func_param)
 {
+#if !defined(__ZEPHYR__)
 	struct sigaction sa;
 
 	/* Ignore SIGPIPE */
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &sa, NULL);
+#endif
 
 	worker_thread_run((struct mg_connection *)thread_func_param);
 	return NULL;
@@ -18005,7 +18145,9 @@ accept_new_connection(const struct socket *listener, struct mg_context *ctx)
 	} else {
 		/* Put so socket structure into the queue */
 		DEBUG_TRACE("Accepted socket %d", (int)so.sock);
-		set_close_on_exec(so.sock, NULL, ctx);
+		/* XXX Don't do it for now */
+		//set_close_on_exec(so.sock, NULL, ctx);
+		//
 		so.is_ssl = listener->is_ssl;
 		so.ssl_redir = listener->ssl_redir;
 		if (getsockname(so.sock, &so.lsa.sa, &len) != 0) {
@@ -18015,6 +18157,7 @@ accept_new_connection(const struct socket *listener, struct mg_context *ctx)
 			                    strerror(ERRNO));
 		}
 
+#if !defined(__ZEPHYR__)
 		/* Set TCP keep-alive. This is needed because if HTTP-level
 		 * keep-alive
 		 * is enabled, and client resets the connection, server won't get
@@ -18034,6 +18177,7 @@ accept_new_connection(const struct socket *listener, struct mg_context *ctx)
 			    __func__,
 			    strerror(ERRNO));
 		}
+#endif
 
 		/* Disable TCP Nagle's algorithm. Normally TCP packets are coalesced
 		 * to effectively fill up the underlying IP packet payload and
@@ -18118,7 +18262,7 @@ master_thread_run(struct mg_context *ctx)
 			pfd[i].events = POLLIN;
 		}
 
-		if (poll(pfd, ctx->num_listening_sockets, 200) > 0) {
+		if (poll(pfd, ctx->num_listening_sockets, 5000) > 0) {
 			for (i = 0; i < ctx->num_listening_sockets; i++) {
 				/* NOTE(lsm): on QNX, poll() returns POLLRDNORM after the
 				 * successful poll, and POLLIN is defined as
@@ -18203,12 +18347,14 @@ static unsigned __stdcall master_thread(void *thread_func_param)
 static void *
 master_thread(void *thread_func_param)
 {
+#if !defined(__ZEPHYR__)
 	struct sigaction sa;
 
 	/* Ignore SIGPIPE */
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &sa, NULL);
+#endif
 
 	master_thread_run((struct mg_context *)thread_func_param);
 	return NULL;
@@ -18382,6 +18528,8 @@ get_system_name(char **sysName)
 #else
 	*sysName = mg_strdup("Symbian");
 #endif
+#elif defined(__ZEPHYR__)
+	*sysName = mg_strdup("Zephyr RTOS");
 #else
 	struct utsname name;
 	memset(&name, 0, sizeof(name));
@@ -18597,7 +18745,7 @@ mg_start(const struct mg_callbacks *callbacks,
 	    !init_ssl_ctx(ctx, NULL) ||
 #endif
 	    !set_ports_option(ctx) ||
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__ZEPHYR__)
 	    !set_uid_option(ctx) ||
 #endif
 	    !set_acl_option(ctx)) {
@@ -18634,8 +18782,8 @@ mg_start(const struct mg_callbacks *callbacks,
 
 #if defined(ALTERNATIVE_QUEUE)
 	ctx->client_wait_events =
-	    (void **)mg_calloc_ctx(sizeof(ctx->client_wait_events[0]),
-	                           ctx->cfg_worker_threads,
+	    (void **)mg_calloc_ctx(ctx->cfg_worker_threads,
+				   sizeof(ctx->client_wait_events[0]),
 	                           ctx);
 	if (ctx->client_wait_events == NULL) {
 		mg_cry_ctx_internal(ctx,
@@ -18648,8 +18796,8 @@ mg_start(const struct mg_callbacks *callbacks,
 	}
 
 	ctx->client_socks =
-	    (struct socket *)mg_calloc_ctx(sizeof(ctx->client_socks[0]),
-	                                   ctx->cfg_worker_threads,
+	    (struct socket *)mg_calloc_ctx(ctx->cfg_worker_threads,
+					   sizeof(ctx->client_socks[0]),
 	                                   ctx);
 	if (ctx->client_socks == NULL) {
 		mg_cry_ctx_internal(ctx,
@@ -18727,7 +18875,7 @@ mg_start(const struct mg_callbacks *callbacks,
 		}
 	}
 
-	pthread_setspecific(sTlsKey, NULL);
+	//pthread_setspecific(sTlsKey, NULL);
 	return ctx;
 }
 
@@ -19007,6 +19155,16 @@ mg_get_system_info(char *buffer, int buflen)
 		            (unsigned)si.wProcessorArchitecture,
 		            (unsigned)si.dwNumberOfProcessors,
 		            (unsigned)si.dwActiveProcessorMask);
+		system_info_length += mg_str_append(&buffer, end, block);
+#elif defined(__ZEPHYR__)
+		mg_snprintf(NULL,
+		            NULL,
+		            block,
+		            sizeof(block),
+		            ",%s\"os\" : \"%s\"",
+		            eol,
+		            "Zephyr RTOS");
+		/* XXX ADD ZEPHYR VERSION!!! */
 		system_info_length += mg_str_append(&buffer, end, block);
 #else
 		struct utsname name;
