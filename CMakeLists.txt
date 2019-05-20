@@ -13,7 +13,7 @@ set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 # Make sure we can import out CMake functions
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # Load in the needed CMake modules
 include(CheckIncludeFiles)
@@ -26,6 +26,35 @@ include(CMakeDependentOption)
 
 # Set up the project
 project (civetweb)
+if (${KERNEL_NAME} MATCHES "zephyr")
+  # This policy is needed to override options with variables
+  cmake_policy(SET CMP0077 NEW)
+
+  # Configure what you need/support in Zephyr
+  set(CIVETWEB_SERVE_NO_FILES ON)
+  set(CIVETWEB_DISABLE_CGI ON)
+  set(CIVETWEB_DISABLE_CACHING ON)
+  set(CIVETWEB_ENABLE_SSL OFF)
+  set(CIVETWEB_ENABLE_SSL_DYNAMIC_LOADING OFF)
+
+  set(CIVETWEB_ENABLE_LUA OFF)
+  set(CIVETWEB_ENABLE_DUKTAPE OFF)
+  set(CIVETWEB_ENABLE_MEMORY_DEBUGGING OFF)
+  set(CIVETWEB_ENABLE_SERVER_EXECUTABLE OFF)
+  set(CIVETWEB_ENABLE_ASAN OFF)
+  set(CIVETWEB_INSTALL_EXECUTABLE OFF)
+
+  set(BUILD_SHARED_LIBS OFF)
+else()
+  # Detect the platform reliably
+  if(NOT MACOSX AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+     SET(DARWIN YES)
+  elseif(NOT BSD AND ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
+      SET(FREEBSD YES)
+  elseif(NOT LINUX AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+      SET(LINUX YES)
+  endif()
+endif()
 set(CIVETWEB_VERSION "1.11.0" CACHE STRING "The version of the civetweb library")
 string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" CIVETWEB_VERSION_MATCH "${CIVETWEB_VERSION}")
 if ("${CIVETWEB_VERSION_MATCH}" STREQUAL "")
@@ -37,14 +66,6 @@ set(CIVETWEB_VERSION_PATCH "${CMAKE_MATCH_3}")
 determine_target_architecture(CIVETWEB_ARCHITECTURE)
 include(GNUInstallDirs)
 
-# Detect the platform reliably
-if(NOT MACOSX AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-   SET(DARWIN YES)
-elseif(NOT BSD AND ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
-    SET(FREEBSD YES)
-elseif(NOT LINUX AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    SET(LINUX YES)
-endif()
 
 # CTest automation
 option(CIVETWEB_BUILD_TESTING "Enable automated testing of civetweb" ON)
@@ -294,26 +315,34 @@ else()
   add_c_compiler_flag(-std=${CIVETWEB_C_STANDARD})
 endif()
 
-#Warnings: enable everything
-add_c_compiler_flag(-Wall)
-add_c_compiler_flag(-Wextra)
-add_c_compiler_flag(-Wshadow)
-add_c_compiler_flag(-Wconversion)
-add_c_compiler_flag(-Wmissing-prototypes)
-add_c_compiler_flag(-Weverything)
-add_c_compiler_flag(-Wparentheses)
-add_c_compiler_flag(/W4) # VisualStudio highest warning level
+# Rely on flags from Zephyr in this case
+if (NOT ${KERNEL_NAME} MATCHES "zephyr")
+  #Warnings: enable everything
+  add_c_compiler_flag(-Wall)
+  add_c_compiler_flag(-Wextra)
+  add_c_compiler_flag(-Wshadow)
+  add_c_compiler_flag(-Wconversion)
+  add_c_compiler_flag(-Wmissing-prototypes)
+  add_c_compiler_flag(-Weverything)
+  add_c_compiler_flag(-Wparentheses)
+  add_c_compiler_flag(/W4) # VisualStudio highest warning level
 
-#Warnings: Disable some warnings
-add_c_compiler_flag(-Wno-padded) # padding in structures by compiler
-add_c_compiler_flag(-Wno-unused-macros) # so what?
-Check_C_Compiler_Flag( HAVE_NO_RESERVED_ID_MACROS -Wno-reserved-id-macros)
-if (HAVE_NO_RESERVED_ID_MACROS)
-add_c_compiler_flag(-Wno-reserved-id-macros) # for system headers
-endif (HAVE_NO_RESERVED_ID_MACROS)
-add_c_compiler_flag(-Wno-format-nonliteral) # printf(myFormatStringVar, ...)
-add_c_compiler_flag(-Wno-cast-qual) # const cast
-add_c_compiler_flag(/Wd4820) # padding
+  #Warnings: Disable some warnings
+  add_c_compiler_flag(-Wno-padded) # padding in structures by compiler
+  add_c_compiler_flag(-Wno-unused-macros) # so what?
+  Check_C_Compiler_Flag( HAVE_NO_RESERVED_ID_MACROS -Wno-reserved-id-macros)
+  if (HAVE_NO_RESERVED_ID_MACROS)
+  add_c_compiler_flag(-Wno-reserved-id-macros) # for system headers
+  endif (HAVE_NO_RESERVED_ID_MACROS)
+  add_c_compiler_flag(-Wno-format-nonliteral) # printf(myFormatStringVar, ...)
+  add_c_compiler_flag(-Wno-cast-qual) # const cast
+  add_c_compiler_flag(/Wd4820) # padding
+
+  add_c_compiler_flag(-pedantic-errors)
+  add_c_compiler_flag(-fvisibility=hidden)
+  add_c_compiler_flag(-fstack-protector-strong RELEASE)
+  add_c_compiler_flag(-fstack-protector-all DEBUG)
+endif()
 
 if (MINGW)
   add_c_compiler_flag(-Wno-format)
@@ -322,9 +351,6 @@ if (NOT CIVETWEB_ALLOW_WARNINGS)
   add_c_compiler_flag(-Werror)
   add_c_compiler_flag(/WX)
 endif()
-add_c_compiler_flag(-pedantic-errors)
-add_c_compiler_flag(-fvisibility=hidden)
-add_c_compiler_flag(-fstack-protector-strong RELEASE)
 if (${CIVETWEB_ENABLE_LTO})
   add_c_compiler_flag(-flto RELEASE)
 endif()
@@ -335,7 +361,6 @@ if (HAVE_C_FLAG_FSANITIZE_ADDRESS)
   add_c_compiler_flag(-static-asan DEBUG)
 endif()
 endif()
-add_c_compiler_flag(-fstack-protector-all DEBUG)
 if (MINGW)
   add_c_compiler_flag(-mwindows)
 endif()
@@ -465,7 +490,10 @@ endif()
 if(CIVETWEB_SSL_OPENSSL_API_1_1)
   add_definitions(-DOPENSSL_API_1_1)
 endif()
-add_definitions(-DUSE_STACK_SIZE=${CIVETWEB_THREAD_STACK_SIZE})
+
+if (NOT ${KERNEL_NAME} MATCHES "zephyr")
+  add_definitions(-DUSE_STACK_SIZE=${CIVETWEB_THREAD_STACK_SIZE})
+endif()
 
 # Set 32 or 64 bit environment
 if (${CMAKE_ARCH} MATCHES "[Xx]86")
@@ -477,7 +505,12 @@ endif()
 # TODO: add support for -march
 
 # Build the targets
-add_subdirectory(src)
+if (${KERNEL_NAME} MATCHES "zephyr")
+  # Sources are already set by cmake file in zephyr directory
+  return()
+else()
+  add_subdirectory(src)
+endif()
 
 # Enable the testing of the library/executable
 include(CTest)
