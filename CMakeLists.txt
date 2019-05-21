@@ -70,8 +70,8 @@ message(STATUS "Serve no static files - ${CIVETWEB_SERVE_NO_FILES}")
 option(CIVETWEB_NO_FILESYSTEMS "Disables filesystems usage, implies CIVETWEB_SERVE_NO_FILES" OFF)
 message(STATUS "Disable filesytems support - ${CIVETWEB_NO_FILESYSTEMS}")
 
-# Serve no files from the web server
-option(CIVETWEB_DISABLE_CGI "Disables CGI, so theserver will not execute CGI scripts" OFF)
+# Disable CGI scripts support
+option(CIVETWEB_DISABLE_CGI "Disables CGI, so the server will not execute CGI scripts" OFF)
 message(STATUS "Disable CGI support - ${CIVETWEB_DISABLE_CGI}")
 
 # Disable caching
