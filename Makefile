@@ -7,7 +7,8 @@
 # For help try, "make help"
 #
 
-include resources/Makefile.in-os
+SDIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SDIR)/resources/Makefile.in-os
 
 CPROG = civetweb
 #CXXPROG = civetweb
@@ -65,7 +66,7 @@ BUILD_DIRS += $(BUILD_DIR)/test
 endif
 
 # only set main compile options if none were chosen
-CFLAGS += -Wall -Wextra -Wshadow -Wformat-security -Winit-self -Wmissing-prototypes -D$(TARGET_OS) -Iinclude $(COPT) -DUSE_STACK_SIZE=$(USE_STACK_SIZE)
+CFLAGS += -Wall -Wextra -Wshadow -Wformat-security -Winit-self -Wmissing-prototypes -D$(TARGET_OS) -I$(SDIR)include $(COPT) -DUSE_STACK_SIZE=$(USE_STACK_SIZE)
 
 LDLIBS = -lpthread -lm
 
@@ -324,12 +325,12 @@ slib: lib$(CPROG).$(SHARED_LIB)
 
 clean:
 	$(RMRF) $(BUILD_DIR)
-	$(eval version=$(shell grep -w "define CIVETWEB_VERSION" include/civetweb.h | sed 's|.*VERSION "\(.*\)"|\1|g'))
+	$(eval version=$(shell grep -w "define CIVETWEB_VERSION" $(SDIR)include/civetweb.h | sed 's|.*VERSION "\(.*\)"|\1|g'))
 	$(eval major=$(shell echo $(version) | cut -d'.' -f1))
-	$(RMRF) lib$(CPROG).a
-	$(RMRF) lib$(CPROG).so
-	$(RMRF) lib$(CPROG).so.$(major)
-	$(RMRF) lib$(CPROG).so.$(version).0
+	$(RMRF) $(SDIR)lib$(CPROG).a
+	$(RMRF) $(SDIR)lib$(CPROG).so
+	$(RMRF) $(SDIR)lib$(CPROG).so.$(major)
+	$(RMRF) $(SDIR)lib$(CPROG).so.$(version).0
 	$(RMRF) $(CPROG)
 	$(RMF) $(UNIT_TEST_PROG)
 
