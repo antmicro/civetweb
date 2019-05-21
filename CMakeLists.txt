@@ -66,6 +66,10 @@ message(STATUS "Enabling server executable - ${CIVETWEB_ENABLE_SERVER_EXECUTABLE
 option(CIVETWEB_SERVE_NO_FILES "Configures the server to serve no static files" OFF)
 message(STATUS "Serve no static files - ${CIVETWEB_SERVE_NO_FILES}")
 
+# Do not use any files at all
+option(CIVETWEB_NO_FILESYSTEMS "Disables filesystems usage, implies CIVETWEB_SERVE_NO_FILES" OFF)
+message(STATUS "Disable filesytems support - ${CIVETWEB_NO_FILESYSTEMS}")
+
 # Serve no files from the web server
 option(CIVETWEB_DISABLE_CGI "Disables CGI, so theserver will not execute CGI scripts" OFF)
 message(STATUS "Disable CGI support - ${CIVETWEB_DISABLE_CGI}")
@@ -432,7 +436,10 @@ endif()
 if (CIVETWEB_ENABLE_SERVER_STATS)
   add_definitions(-DUSE_SERVER_STATS)
 endif()
-if (CIVETWEB_SERVE_NO_FILES)
+if (CIVETWEB_NO_FILESYSTEMS)
+  add_definitions(-DNO_FILESYSTEMS)
+endif()
+if (CIVETWEB_SERVE_NO_FILES OR CIVETWEB_NO_FILESYSTEMS)
   add_definitions(-DNO_FILES)
 endif()
 if (CIVETWEB_DISABLE_CGI)
