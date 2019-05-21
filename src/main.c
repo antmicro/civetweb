@@ -1321,7 +1321,9 @@ start_civetweb(int argc, char *argv[])
 
 	/* Initialize options structure */
 	memset(options, 0, sizeof(options));
+#if !defined(NO_FILES)
 	set_option(options, "document_root", ".");
+#endif
 
 	/* Update config based on command line arguments */
 	process_command_line_arguments(argc, argv, options);
