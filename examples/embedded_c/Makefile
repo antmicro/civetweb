@@ -7,31 +7,41 @@
 
 
 PROG = embedded_c
-SRC = embedded_c.c
+
+#define the default target before including anything
+$(PROG):
 
 TOP = ../..
 CIVETWEB_LIB = libcivetweb.a
+CIVETWEB_LIB_LOCAL = libcivetweb-local.a
 
-CFLAGS = -I$(TOP)/include $(COPT) -DUSE_WEBSOCKET -DUSE_IPV6
-LIBS = -lpthread
+# define some default flags needed for embedded_c
+WITH_IPV6 ?= 1
+WITH_WEBSOCKET ?= 1
 
-include $(TOP)/resources/Makefile.in-os
+# export variables so the main Makefile can see them
+export
 
-ifeq ($(TARGET_OS),LINUX) 
-	LIBS += -ldl
-endif
+# default CFLAGS
+CFLAGS += -DUSE_SSL_DH=1
 
-all: $(PROG)
+include $(TOP)/Makefile
 
-$(PROG): $(CIVETWEB_LIB) $(SRC)
-	$(CC) -o $@ $(CFLAGS) $(LDFLAGS) $(SRC) $(CIVETWEB_LIB) $(LIBS) -lcrypto -lssl -DUSE_SSL_DH=1
+# XXX This shouldn't really be here, but previously this sample was
+# compiled without any warnings, now, as we inherit everything from
+# the main Makefile, the output is flooded with them
+CFLAGS += -Wno-missing-prototypes -Wno-unused-parameter
 
-$(CIVETWEB_LIB):
-	$(MAKE) -C $(TOP) WITH_IPV6=1 WITH_WEBSOCKET=1 COPT='-DNO_SSL_DL=1' clean lib
-	cp $(TOP)/$(CIVETWEB_LIB) .
+$(CIVETWEB_LIB_LOCAL):
+	$(MAKE) -C $(TOP) clean lib
+	cp $(TOP)/$(CIVETWEB_LIB) $(CIVETWEB_LIB_LOCAL)
 
-clean:
-	rm -f $(CIVETWEB_LIB) $(PROG)
+$(PROG): $(CIVETWEB_LIB_LOCAL)
 
-.PHONY: all clean
+clean_embedded:
+	$(RMRF) $(CIVETWEB_LIB_LOCAL) $(PROG)
+
+clean: clean_embedded
+
+.PHONY: clean_embedded
 
