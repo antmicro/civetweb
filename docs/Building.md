@@ -92,6 +92,7 @@ make build WITH_LUA=1
 | `WITH_SERVER_STATS=1`       | build with support for server statistics          |
 | `WITH_EXPERIMENTAL=1`       | include experimental features (version depending) |
 | `WITH_ALL=1`                | Include all of the above features                 |
+| `WITH_FILESYSTEMS=0`        | Disable filesystems support                       |
 | `WITH_DEBUG=1`              | build with GDB debug support                      |
 | `WITH_CPP=1`                | build libraries with c++ classes                  |
 | `CONFIG_FILE=file`          | use 'file' as the config file                     |

@@ -168,6 +168,13 @@ ifdef WITH_DAEMONIZE
   CFLAGS += -DDAEMONIZE -DPID_FILE=\"$(PID_FILE)\"
 endif
 
+# Assume WITH_FILESYSTEMS=1 if not explicitly set
+WITH_FILESYSTEMS ?= 1
+ifeq ($(WITH_FILESYSTEMS),0)
+  # imply NO_FILES if FILESYSTEMS are disabled
+  CFLAGS += -DNO_FILESYSTEMS -DNO_FILES
+endif
+
 # File names
 ifdef CONFIG_FILE
   CFLAGS += -DCONFIG_FILE=\"$(CONFIG_FILE)\"
@@ -246,6 +253,7 @@ help:
 	@echo "   WITH_CPP=1            build library with c++ classes"
 	@echo "   WITH_EXPERIMENTAL=1   build with experimental features"
 	@echo "   WITH_DAEMONIZE=1      build with daemonize."
+	@echo "   WITH_FILESYSTEMS=1    build with filesystems support."
 	@echo "   PID_FILE=/path        PID file path of daemon."
 	@echo "   CONFIG_FILE=file      use 'file' as the config file"
 	@echo "   CONFIG_FILE2=file     use 'file' as the backup config file"
