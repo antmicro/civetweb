@@ -161,7 +161,7 @@ BXHandler(struct mg_connection *conn, void *cbdata)
 	mg_printf(conn, "<html><body>");
 	mg_printf(conn,
 	          "<h2>This is the BX handler with argument %s.</h2>",
-	          cbdata);
+	          (char *)cbdata);
 	mg_printf(conn, "<p>The actual uri is %s</p>", req_info->local_uri);
 	mg_printf(conn, "</body></html>\n");
 	return 1;
@@ -192,9 +192,6 @@ FooHandler(struct mg_connection *conn, void *cbdata)
 int
 CloseHandler(struct mg_connection *conn, void *cbdata)
 {
-	/* Handler may access the request info using mg_get_request_info */
-	const struct mg_request_info *req_info = mg_get_request_info(conn);
-
 	mg_printf(conn,
 	          "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: "
 	          "close\r\n\r\n");
@@ -291,7 +288,7 @@ field_get(const char *key, const char *value, size_t valuelen, void *user_data)
 	if (key) {
 		mg_printf(conn, "key = %s\n", key);
 	}
-	mg_printf(conn, "valuelen = %u\n", valuelen);
+	mg_printf(conn, "valuelen = %lu\n", valuelen);
 
 	if (valuelen > 0) {
 		/* mg_write(conn, value, valuelen); */
@@ -542,7 +539,6 @@ PostResponser(struct mg_connection *conn, void *cbdata)
 
 	if (0 != strcmp(ri->request_method, "POST")) {
 		/* Not a POST request */
-		char buf[1024];
 		int ret = mg_get_request_link(conn, buf, sizeof(buf));
 
 		mg_printf(conn,
@@ -716,10 +712,10 @@ WebSocketStartHandler(struct mg_connection *conn, void *cbdata)
  * of currently connected websocket clients. */
 #define MAX_WS_CLIENTS (5)
 
-struct t_ws_client {
+static struct t_ws_client {
 	struct mg_connection *conn;
 	int state;
-} static ws_clients[MAX_WS_CLIENTS];
+} ws_clients[MAX_WS_CLIENTS];
 
 
 #define ASSERT(x)                                                              \
@@ -918,10 +914,10 @@ get_dh2236()
 int
 init_ssl(void *ssl_context, void *user_data)
 {
+#ifdef USE_SSL_DH
 	/* Add application specific SSL initialization */
 	struct ssl_ctx_st *ctx = (struct ssl_ctx_st *)ssl_context;
 
-#ifdef USE_SSL_DH
 	/* example from https://github.com/civetweb/civetweb/issues/347 */
 	DH *dh = get_dh2236();
 	if (!dh)
