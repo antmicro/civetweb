@@ -67,7 +67,7 @@ endif
 # only set main compile options if none were chosen
 CFLAGS += -Wall -Wextra -Wshadow -Wformat-security -Winit-self -Wmissing-prototypes -D$(TARGET_OS) -Iinclude $(COPT) -DUSE_STACK_SIZE=$(USE_STACK_SIZE)
 
-LIBS = -lpthread -lm
+LDLIBS = -lpthread -lm
 
 ifdef WITH_DEBUG
   CFLAGS += -g -DDEBUG
@@ -136,7 +136,7 @@ ifdef WITH_COMPRESSION
 endif
 
 ifdef WITH_ZLIB
-  LIBS += -lz
+  LDLIBS += -lz
   CFLAGS += -DUSE_ZLIB
 endif
 
@@ -190,7 +190,7 @@ MAIN_OBJECTS = $(addprefix $(BUILD_DIR)/, $(APP_SOURCES:.c=.o))
 LIB_OBJECTS = $(filter-out $(MAIN_OBJECTS), $(BUILD_OBJECTS))
 
 ifeq ($(TARGET_OS),LINUX)
-  LIBS += -lrt -ldl
+  LDLIBS += -lrt -ldl
   CAN_INSTALL = 1
 endif
 
@@ -201,16 +201,16 @@ ifeq ($(TARGET_OS),WIN32)
 endif
 
 ifdef WITH_LUAJIT_SHARED
-  LIBS += -lluajit-5.1
+  LDLIBS += -lluajit-5.1
 else
 ifdef WITH_LUA_SHARED
-  LIBS += $(LUA_SHARED_LIB_FLAG)
+  LDLIBS += $(LUA_SHARED_LIB_FLAG)
 endif
 endif
 
 ifneq (, $(findstring mingw32, $(shell $(CC) -dumpmachine)))
   BUILD_RESOURCES = $(BUILD_DIR)/$(WINDOWS_RESOURCES:.rc=.o)
-  LIBS += -lws2_32 -mwindows
+  LDLIBS += -lws2_32 -mwindows
   SHARED_LIB = dll
 else
   SHARED_LIB = so
@@ -356,17 +356,17 @@ lib$(CPROG).so: $(LIB_OBJECTS)
 
 lib$(CPROG).dll: CFLAGS += -fPIC
 lib$(CPROG).dll: $(LIB_OBJECTS)
-	$(LCC) -shared -o $@ $(CFLAGS) $(LDFLAGS) $(LIB_OBJECTS) $(LIBS) -Wl,--out-implib,lib$(CPROG).dll.a
+	$(LCC) -shared -o $@ $(CFLAGS) $(LDFLAGS) $(LIB_OBJECTS) $(LDLIBS) -Wl,--out-implib,lib$(CPROG).dll.a
 
 $(UNIT_TEST_PROG): CFLAGS += -Isrc -g
 $(UNIT_TEST_PROG): $(LIB_SOURCES) $(LIB_INLINE) $(UNIT_TEST_SOURCES) $(BUILD_OBJECTS)
-	$(LCC) -o $@ $(CFLAGS) $(LDFLAGS) $(UNIT_TEST_SOURCES) $(BUILD_OBJECTS) $(LIBS)
+	$(LCC) -o $@ $(CFLAGS) $(LDFLAGS) $(UNIT_TEST_SOURCES) $(BUILD_OBJECTS) $(LDLIBS)
 
 $(CPROG): $(BUILD_OBJECTS) $(BUILD_RESOURCES)
-	$(LCC) -o $@ $(CFLAGS) $(LDFLAGS) $(BUILD_OBJECTS) $(BUILD_RESOURCES) $(LIBS)
+	$(LCC) -o $@ $(CFLAGS) $(LDFLAGS) $(BUILD_OBJECTS) $(BUILD_RESOURCES) $(LDLIBS)
 
 $(CXXPROG): $(BUILD_OBJECTS)
-	$(CXX) -o $@ $(CFLAGS) $(LDFLAGS) $(BUILD_OBJECTS) $(LIBS)
+	$(CXX) -o $@ $(CFLAGS) $(LDFLAGS) $(BUILD_OBJECTS) $(LDLIBS)
 
 $(BUILD_OBJECTS): $(BUILD_DIRS)
 
