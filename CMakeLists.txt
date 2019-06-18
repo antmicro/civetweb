@@ -49,6 +49,19 @@ if (${KERNEL_NAME} MATCHES "zephyr")
 
   add_definitions(-DMG_EXTERNAL_FUNCTION_mg_cry_internal_impl)
   add_definitions(-DMG_EXTERNAL_FUNCTION_log_access)
+
+  zephyr_interface_library_named(CIVETWEB)
+
+  target_include_directories(CIVETWEB INTERFACE src)
+  target_include_directories(CIVETWEB INTERFACE include)
+
+  zephyr_library()
+  zephyr_library_sources(
+    src/civetweb.c
+  )
+
+  zephyr_library_link_libraries(CIVETWEB)
+  target_link_libraries(CIVETWEB INTERFACE zephyr_interface)
 else()
   # Detect the platform reliably
   if(NOT MACOSX AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
