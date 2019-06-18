@@ -46,6 +46,9 @@ if (${KERNEL_NAME} MATCHES "zephyr")
   set(CIVETWEB_INSTALL_EXECUTABLE OFF)
 
   set(BUILD_SHARED_LIBS OFF)
+
+  add_definitions(-DMG_EXTERNAL_FUNCTION_mg_cry_internal_impl)
+  add_definitions(-DMG_EXTERNAL_FUNCTION_log_access)
 else()
   # Detect the platform reliably
   if(NOT MACOSX AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
