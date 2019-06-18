@@ -32,6 +32,7 @@ if (${KERNEL_NAME} MATCHES "zephyr")
 
   # Configure what you need/support in Zephyr
   set(CIVETWEB_SERVE_NO_FILES ON)
+  set(CIVETWEB_SERVE_NO_FILESYSTEMS ON)
   set(CIVETWEB_DISABLE_CGI ON)
   set(CIVETWEB_DISABLE_CACHING ON)
   set(CIVETWEB_ENABLE_SSL OFF)
@@ -43,9 +44,6 @@ if (${KERNEL_NAME} MATCHES "zephyr")
   set(CIVETWEB_ENABLE_SERVER_EXECUTABLE OFF)
   set(CIVETWEB_ENABLE_ASAN OFF)
   set(CIVETWEB_INSTALL_EXECUTABLE OFF)
-
-  # XXX This should be solved in a better way
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNO_FILESYSTEMS -DMG_EXTERNAL_FUNCTION_mg_cry_internal_impl -DMG_EXTERNAL_FUNCTION_log_access")
 
   set(BUILD_SHARED_LIBS OFF)
 else()
@@ -462,6 +460,9 @@ if (CIVETWEB_ENABLE_SERVER_STATS)
 endif()
 if (CIVETWEB_SERVE_NO_FILES)
   add_definitions(-DNO_FILES)
+endif()
+if (CIVETWEB_SERVE_NO_FILESYSTEMS)
+	add_definitions(-DNO_FILESYSTEMS)
 endif()
 if (CIVETWEB_DISABLE_CGI)
   add_definitions(-DNO_CGI)
