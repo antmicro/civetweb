@@ -54,6 +54,9 @@ if (${KERNEL_NAME} MATCHES "zephyr")
 
   target_include_directories(CIVETWEB INTERFACE src)
   target_include_directories(CIVETWEB INTERFACE include)
+  target_include_directories(CIVETWEB INTERFACE ${CMAKE_SOURCE_DIR}/src)
+
+  zephyr_include_directories(include)
 
   zephyr_library()
   zephyr_library_sources(
