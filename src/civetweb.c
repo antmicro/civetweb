@@ -184,10 +184,25 @@ mg_static_assert(sizeof(void *) >= sizeof(int), "data type size check");
 
 #include <libc_extensions.h>
 
+#if defined(MAX_WORKER_THREADS)
+#undef MAX_WORKER_THREADS
+#endif
 
+/* Max worker threads is the max of pthreads minus the main application thread
+ * and minus the main civetweb thread, thus -2
+ */
+#define MAX_WORKER_THREADS	(CONFIG_MAX_PTHREAD_COUNT - 2)
 
+#if defined(USE_STACK_SIZE) && (USE_STACK_SIZE > 1)
+#define ZEPHYR_STACK_SIZE	USE_STACK_SIZE
+#else
+#define ZEPHYR_STACK_SIZE	8096
+#endif
 
+K_THREAD_STACK_DEFINE(civetweb_main_stack, ZEPHYR_STACK_SIZE);
+K_THREAD_STACK_ARRAY_DEFINE(civetweb_worker_stacks, MAX_WORKER_THREADS, ZEPHYR_STACK_SIZE);
 
+static int zephyr_worker_stack_index;
 
 #endif
 
@@ -5958,6 +5973,10 @@ mg_start_thread(mg_thread_func_t func, void *param)
 	(void)pthread_attr_setstacksize(&attr, USE_STACK_SIZE);
 #endif /* defined(USE_STACK_SIZE) && (USE_STACK_SIZE > 1) */
 
+#if defined(__ZEPHYR__)
+	pthread_attr_setstack(&attr, &civetweb_main_stack, ZEPHYR_STACK_SIZE);
+#endif
+
 	result = pthread_create(&thread_id, &attr, func, param);
 	pthread_attr_destroy(&attr);
 
@@ -5982,6 +6001,12 @@ mg_start_thread_with_id(mg_thread_func_t func,
 	 * e.g. -DUSE_STACK_SIZE=16384 */
 	(void)pthread_attr_setstacksize(&attr, USE_STACK_SIZE);
 #endif /* defined(USE_STACK_SIZE) && USE_STACK_SIZE > 1 */
+
+#if defined(__ZEPHYR__)
+	pthread_attr_setstack(&attr,
+			      &civetweb_worker_stacks[zephyr_worker_stack_index++],
+			      ZEPHYR_STACK_SIZE);
+#endif
 
 	result = pthread_create(&thread_id, &attr, func, param);
 	pthread_attr_destroy(&attr);
