@@ -181,61 +181,13 @@ mg_static_assert(sizeof(void *) >= sizeof(int), "data type size check");
 #include <ctype.h>
 
 #include <fcntl.h>
-#define F_SETFD 2
-#define FD_CLOEXEC 1
 
-#define time_t uint64_t
-#define FILE void
+#include <libc_extensions.h>
 
-static struct tm *
-gmtime(const time_t *ptime)
-{
-	/* XXX */
-	return NULL;
-}
 
-static size_t
-strftime(char *dst, size_t dst_size, const char *fmt, const struct tm *tm)
-{
-	/* XXX */
-	return 0;
-}
 
-double difftime (time_t end, time_t beg)
-{
-	return end - beg;
-}
 
-static char* generic_strerr = "XXX: generic error string";
 
-static char *strerror(int err)
-{
-	return generic_strerr;
-}
-
-int sscanf ( const char * s, const char * format, ...)
-{
-	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
-	return 0;
-}
-
-double atof (const char* str)
-{
-	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
-	return 0;
-}
-
-long long int strtoll (const char* str, char** endptr, int base)
-{
-	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
-	return 0;
-}
-
-time_t time(time_t *t)
-{
-	printf("[MISSING_IMPLEMENTATION]: %s @ %d\n", __func__, __LINE__);
-	return 0;
-}
 
 #endif
 
@@ -258,7 +210,7 @@ static void DEBUG_TRACE_FUNC(const char *func,
 #define NEED_DEBUG_TRACE_FUNC
 
 #else
-#define DEBUG_TRACE(fmt, ...)  printf("[DEBUG_TRACE] " fmt " [caller: %s @ %d]\n", __VA_ARGS__, __func__, __LINE__)
+#define DEBUG_TRACE(fmt, ...)
 #endif /* DEBUG */
 #endif /* DEBUG_TRACE */
 
@@ -18131,7 +18083,9 @@ accept_new_connection(const struct socket *listener, struct mg_context *ctx)
 	struct socket so;
 	char src_addr[IP_ADDR_STR_LEN];
 	socklen_t len = sizeof(so.rsa);
+#if !defined(__ZEPHYR__)
 	int on = 1;
+#endif
 
 	if ((so.sock = accept(listener->sock, &so.rsa.sa, &len))
 	    == INVALID_SOCKET) {
