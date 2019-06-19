@@ -13939,7 +13939,6 @@ handle_request(struct mg_connection *conn)
 		 * addresses a file based resource (static content or Lua/cgi
 		 * scripts in the file system). */
 		is_callback_resource = 0;
-# if 0
 		interpret_uri(conn,
 		              path,
 		              sizeof(path),
@@ -13948,12 +13947,6 @@ handle_request(struct mg_connection *conn)
 		              &is_script_resource,
 		              &is_websocket_request,
 		              &is_put_or_delete_request);
-# else
-		is_found = 0;
-		is_script_resource = 0;
-		is_websocket_request = 0;
-		is_put_or_delete_request = 0;
-# endif
 	}
 
 	/* 6. authorization check */
@@ -18508,7 +18501,7 @@ get_system_name(char **sysName)
 	*sysName = mg_strdup("Symbian");
 #endif
 #elif defined(__ZEPHYR__)
-	*sysName = mg_strdup("Zephyr RTOS");
+	*sysName = mg_strdup("Zephyr OS");
 #else
 	struct utsname name;
 	memset(&name, 0, sizeof(name));
@@ -19140,10 +19133,10 @@ mg_get_system_info(char *buffer, int buflen)
 		            NULL,
 		            block,
 		            sizeof(block),
-		            ",%s\"os\" : \"%s\"",
+		            ",%s\"os\" : \"%s %s\"",
 		            eol,
-		            "Zephyr RTOS");
-		/* XXX ADD ZEPHYR VERSION!!! */
+		            "Zephyr OS",
+		            STRINGIFY(BUILD_VERSION));
 		system_info_length += mg_str_append(&buffer, end, block);
 #else
 		struct utsname name;
